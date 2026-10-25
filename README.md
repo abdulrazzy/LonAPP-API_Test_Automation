@@ -58,8 +58,8 @@ On every **push**, [`.github/workflows/api-tests.yml`](.github/workflows/api-tes
 2. **Generate Allure report** — build HTML, publish to **GitHub Pages**, keep artifact backup  
 3. **Email stakeholders** — status summary + **clickable Allure report URL**  
 
-One-time Pages setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**.  
-Published report URL: `https://abdulrazzy.github.io/LonAPP-API_Test_Automation/`
+Published report URL (also in the email): `https://abdulrazzy.github.io/LonAPP-API_Test_Automation/`  
+CI enables GitHub Pages automatically on first successful deploy. If deploy is blocked, set **Settings → Pages → Source: GitHub Actions** once.
 
 Add these repository secrets (Settings → Secrets and variables → Actions):
 

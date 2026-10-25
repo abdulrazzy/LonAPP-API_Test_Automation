@@ -94,9 +94,9 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.url.outputs.report_url }}
     outputs:
-      report_url: ${{ steps.deployment.outputs.page_url }}
+      report_url: ${{ steps.url.outputs.report_url }}
 
     steps:
       - name: Checkout
@@ -137,6 +137,18 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+      - name: Ensure GitHub Pages site exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          STATUS=$(gh api -i "repos/${{ github.repository }}/pages" 2>/dev/null | head -n1 | awk '{print $2}' || true)
+          if [ "$STATUS" = "200" ]; then
+            echo "GitHub Pages already configured"
+          else
+            echo "Creating GitHub Pages site (Actions build)"
+            gh api -X POST "repos/${{ github.repository }}/pages" -f build_type=workflow
+          fi
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -145,6 +157,21 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Set report URL
+        if: always()
+        id: url
+        run: |
+          URL="${{ steps.deployment.outputs.page_url }}"
+          if [ -z "$URL" ]; then
+            URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          fi
+          case "$URL" in
+            */) ;;
+            *) URL="${URL}/" ;;
+          esac
+          echo "report_url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Allure report URL: $URL"
 
   # ---------------------------------------------------------------------------
   # 3) Email stakeholders with published Allure URL
@@ -157,6 +184,15 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      - name: Resolve Allure report URL
+        id: report
+        run: |
+          URL="${{ needs.allure.outputs.report_url }}"
+          if [ -z "$URL" ]; then
+            URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
       - name: Email Allure report
         uses: dawidd6/action-send-mail@v4
         with:
@@ -180,7 +216,7 @@ jobs:
             </ul>
             <p>
               <strong>Allure report:</strong><br/>
-              <a href="${{ needs.allure.outputs.report_url }}">${{ needs.allure.outputs.report_url }}</a>
+              <a href="${{ steps.report.outputs.url }}">${{ steps.report.outputs.url }}</a>
             </p>
             <p>
               Workflow run (Playwright artifact if needed):<br/>
