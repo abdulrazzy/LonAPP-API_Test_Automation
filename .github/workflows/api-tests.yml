@@ -95,18 +95,9 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      - name: Zip Allure report for email
-        if: always()
-        run: |
-          if [ -d allure-report ]; then
-            zip -r allure-report.zip allure-report
-            ls -lh allure-report.zip
-          else
-            echo "No allure-report directory found"
-          fi
-
+      # Gmail blocks Allure HTML/JS zip attachments (552-5.7.0). Email a summary + artifact links instead.
       - name: Email Allure report
-        if: always() && hashFiles('allure-report.zip') != ''
+        if: always()
         uses: dawidd6/action-send-mail@v4
         with:
           server_address: smtp.gmail.com
@@ -118,19 +109,22 @@ jobs:
           to: jackie.botchway@gmail.com,boakye@gmail.com,wuudof@gmail.com,jayphadit@gmail.com
           from: LonApp API Tests <razaqyaro@gmail.com>
           html_body: |
-            <p><strong>LonApp API test run finished</strong></p>
+            <p><strong>LonApp API Test Automation Report</strong></p>
             <ul>
               <li><strong>Status:</strong> ${{ job.status }}</li>
               <li><strong>Environment:</strong> ${{ steps.env.outputs.target }}</li>
               <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
               <li><strong>Commit:</strong> ${{ github.sha }}</li>
               <li><strong>Actor:</strong> ${{ github.actor }}</li>
-              <li><strong>Workflow run:</strong>
-                <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">
-                  ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-                </a>
-              </li>
             </ul>
-            <p>The Allure HTML report is attached as <code>allure-report.zip</code>.
-            Unzip and open <code>index.html</code>. You can also download artifacts from the workflow run link above.</p>
-          attachments: allure-report.zip
+            <p>
+              Open the workflow run to download the <strong>Allure</strong> and <strong>Playwright</strong> reports:<br/>
+              <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">
+                ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+              </a>
+            </p>
+            <p>
+              Artifacts on that page:<br/>
+              <code>allure-report-${{ steps.env.outputs.target }}</code> — unzip and open <code>index.html</code><br/>
+              <code>playwright-report-${{ steps.env.outputs.target }}</code> — Playwright HTML report
+            </p>

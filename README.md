@@ -70,7 +70,7 @@ Add these repository secrets (Settings → Secrets and variables → Actions):
 After each run the workflow:
 
 1. Uploads Playwright HTML, Allure report, and raw `allure-results` as artifacts
-2. Emails `allure-report.zip` to:
+2. Emails stakeholders a status summary with a link to download those artifacts (Gmail blocks Allure HTML/JS zip attachments):
    - `jackie.botchway@gmail.com`
    - `boakye@gmail.com`
    - `wuudof@gmail.com`
