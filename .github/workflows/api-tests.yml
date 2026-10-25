@@ -1,0 +1,138 @@
+name: LonApp API Tests
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target API environment
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - dev
+
+concurrency:
+  group: api-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-tests:
+    name: API tests (${{ github.event.inputs.environment || 'staging' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve environment
+        id: env
+        run: |
+          TARGET="${{ github.event.inputs.environment }}"
+          if [ -z "$TARGET" ]; then
+            TARGET="staging"
+          fi
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "Running against: $TARGET"
+
+      - name: Run Playwright API tests
+        id: tests
+        env:
+          PLATFORM_ADMIN_EMAIL: ${{ secrets.PLATFORM_ADMIN_EMAIL }}
+          PLATFORM_ADMIN_PASSWORD: ${{ secrets.PLATFORM_ADMIN_PASSWORD }}
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          GMAIL_REDIRECT_URI: ${{ secrets.GMAIL_REDIRECT_URI || 'https://google.com' }}
+        run: npx playwright test --project=${{ steps.env.outputs.target }}
+
+      - name: Setup Java (Allure)
+        if: always()
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Generate Allure report
+        if: always()
+        run: npm run allure:generate
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ steps.env.outputs.target }}
+          path: playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{ steps.env.outputs.target }}
+          path: allure-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload Allure raw results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ steps.env.outputs.target }}
+          path: allure-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Zip Allure report for email
+        if: always()
+        run: |
+          if [ -d allure-report ]; then
+            zip -r allure-report.zip allure-report
+            ls -lh allure-report.zip
+          else
+            echo "No allure-report directory found"
+          fi
+
+      - name: Email Allure report
+        if: always() && hashFiles('allure-report.zip') != ''
+        uses: dawidd6/action-send-mail@v4
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: >-
+            LonApp API Tests [${{ steps.env.outputs.target }}] —
+            ${{ job.status }} — ${{ github.repository }}@${{ github.ref_name }}
+          to: jackie.botchway@gmail.com,boakye@gmail.com,wuudof@gmail.com
+          from: ${{ secrets.SMTP_USER }}
+          html_body: |
+            <p><strong>LonApp API test run finished</strong></p>
+            <ul>
+              <li><strong>Status:</strong> ${{ job.status }}</li>
+              <li><strong>Environment:</strong> ${{ steps.env.outputs.target }}</li>
+              <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
+              <li><strong>Commit:</strong> ${{ github.sha }}</li>
+              <li><strong>Actor:</strong> ${{ github.actor }}</li>
+              <li><strong>Workflow run:</strong>
+                <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">
+                  ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                </a>
+              </li>
+            </ul>
+            <p>The Allure HTML report is attached as <code>allure-report.zip</code>.
+            Unzip and open <code>index.html</code>. You can also download artifacts from the workflow run link above.</p>
+          attachments: allure-report.zip

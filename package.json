@@ -1,0 +1,25 @@
+{
+  "name": "lonapp-api-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LonApp API tests (Playwright + TypeScript + Gmail OTP)",
+  "scripts": {
+    "test": "playwright test --project=dev",
+    "test:dev": "playwright test --project=dev",
+    "test:staging": "playwright test --project=staging",
+    "report": "playwright show-report",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "allure:serve": "allure serve allure-results",
+    "allure:report": "npm run allure:generate && npm run allure:open"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.10.0",
+    "allure-commandline": "^2.46.1",
+    "allure-playwright": "^3.14.0",
+    "dotenv": "^16.4.5",
+    "googleapis": "^144.0.0",
+    "typescript": "^5.7.2"
+  }
+}
