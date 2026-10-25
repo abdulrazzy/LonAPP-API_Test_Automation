@@ -1,0 +1,4 @@
+#!/bin/sh
+# Strip Cursor attribution trailers so Cursor is not listed as a GitHub contributor.
+tmp="$1.tmp"
+grep -viE '^(co-authored-by:[[:space:]]*cursor|made-with:[[:space:]]*cursor)' "$1" > "$tmp" && mv "$tmp" "$1"
