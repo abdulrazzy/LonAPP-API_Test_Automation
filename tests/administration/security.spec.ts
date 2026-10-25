@@ -28,9 +28,10 @@ test.describe('Administration security (platform admin context)', () => {
     expectFailure(result, [401, 403]);
   });
 
-  test('tampered bearer cannot list departments', async ({ request, platformAdmin }) => {
+  test('tampered bearer cannot list staff accounts', async ({ request, platformAdmin }) => {
+    // GET departments is publicly readable on staging; staff-accounts requires auth.
     const tampered = `${platformAdmin.bearerToken.slice(0, -6)}xxxxxx`;
-    const result = await apiRequest(request, 'GET', '/api/v1/Administration/departments', {
+    const result = await apiRequest(request, 'GET', '/api/v1/Administration/staff-accounts', {
       token: tampered,
     });
     expectFailure(result, [401, 403]);

@@ -68,8 +68,8 @@ Add these repository secrets (Settings → Secrets and variables → Actions):
 
 | Secret | Required |
 | --- | --- |
-| `PLATFORM_ADMIN_EMAIL` | Yes |
-| `PLATFORM_ADMIN_PASSWORD` | Yes |
+| `PLATFORM_ADMIN_EMAIL` | Yes — CI fails fast if missing (most tests need it) |
+| `PLATFORM_ADMIN_PASSWORD` | Yes — CI fails fast if missing |
 | `SMTP_USER` | Yes — set to `razaqyaro@gmail.com` |
 | `SMTP_PASSWORD` | Yes — Gmail App Password for that account (enter without spaces) |
 | `GMAIL_CLIENT_ID` | Only if OTP tests are enabled |

@@ -51,6 +51,26 @@ jobs:
           echo "target=$TARGET" >> "$GITHUB_OUTPUT"
           echo "Running against: $TARGET"
 
+      - name: Verify required secrets
+        env:
+          PLATFORM_ADMIN_EMAIL: ${{ secrets.PLATFORM_ADMIN_EMAIL }}
+          PLATFORM_ADMIN_PASSWORD: ${{ secrets.PLATFORM_ADMIN_PASSWORD }}
+        run: |
+          missing=0
+          if [ -z "$PLATFORM_ADMIN_EMAIL" ]; then
+            echo "::error::Missing repository secret PLATFORM_ADMIN_EMAIL"
+            missing=1
+          fi
+          if [ -z "$PLATFORM_ADMIN_PASSWORD" ]; then
+            echo "::error::Missing repository secret PLATFORM_ADMIN_PASSWORD"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            echo "Add secrets under Settings → Secrets and variables → Actions, then re-run."
+            exit 1
+          fi
+          echo "Platform admin secrets are present."
+
       - name: Run Playwright API tests
         env:
           PLATFORM_ADMIN_EMAIL: ${{ secrets.PLATFORM_ADMIN_EMAIL }}

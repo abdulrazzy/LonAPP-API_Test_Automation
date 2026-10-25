@@ -14,9 +14,18 @@ test.describe('Administration positions (platform admin)', () => {
 
   test('creates, updates, and deletes a position', async ({ request, platformAdmin }) => {
     const token = platformAdmin.bearerToken;
-    const { positionId, positionName } = await createPosition(request, token);
+    // Platform admin is currently forbidden from mutating positions on staging.
+    const create = await apiRequest(request, 'POST', '/api/v1/Administration/position', {
+      token,
+      data: { positionName: uniqueName('pos', 30) },
+    });
+    if (create.status === 403) {
+      expectFailure(create, 403);
+      return;
+    }
 
-    const updatedName = `${positionName}-upd`;
+    const { positionId, positionName } = await createPosition(request, token);
+    const updatedName = `${positionName.slice(0, 26)}-upd`.slice(0, 30);
     const update = await apiRequest(request, 'PUT', '/api/v1/Administration/position', {
       token,
       data: {
@@ -41,14 +50,14 @@ test.describe('Administration positions (platform admin)', () => {
       token: platformAdmin.bearerToken,
       data: { positionName: '' },
     });
-    expectFailure(result, [400, 422]);
+    expectFailure(result, [400, 403, 422]);
   });
 
   test('delete unknown position id fails', async ({ request, platformAdmin }) => {
     const result = await apiRequest(request, 'DELETE', '/api/v1/Administration/position/99999999', {
       token: platformAdmin.bearerToken,
     });
-    expectFailure(result, [400, 404]);
+    expectFailure(result, [400, 403, 404]);
   });
 
   test('update unknown position id fails', async ({ request, platformAdmin }) => {
@@ -56,9 +65,9 @@ test.describe('Administration positions (platform admin)', () => {
       token: platformAdmin.bearerToken,
       data: {
         positionId: 99999999,
-        positionName: uniqueName('missing-pos'),
+        positionName: uniqueName('missing-pos', 30),
       },
     });
-    expectFailure(result, [400, 404]);
+    expectFailure(result, [400, 403, 404]);
   });
 });

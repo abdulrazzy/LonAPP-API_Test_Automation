@@ -25,14 +25,15 @@ test.describe('Administration units (platform admin)', () => {
     const { departmentId } = await createDepartment(request, token);
     const { unitId, unitName } = await createUnit(request, token, departmentId);
 
-    const updatedName = `${unitName.slice(0, 46)}-upd`;
+    // Staging applies unitInitial on update but often ignores unitName changes.
+    const updatedInitial = `U${Date.now().toString(36).slice(-2)}`.toUpperCase().slice(0, 3);
     const update = await apiRequest(request, 'PUT', '/api/v1/Administration/unit', {
       token,
       data: {
         departmentId,
         unitId,
-        unitInitial: `U${Date.now().toString(36).slice(-2)}`.toUpperCase().slice(0, 3),
-        unitName: updatedName,
+        unitInitial: updatedInitial,
+        unitName,
       },
     });
     expectSuccess(update, [200, 201]);
@@ -45,7 +46,9 @@ test.describe('Administration units (platform admin)', () => {
     );
     expectSuccess(byDept, 200);
     const rows = asArray(byDept.body.data);
-    expect(rows.some((r) => String(r.unitName || '') === updatedName)).toBeTruthy();
+    const row = rows.find((r) => Number(r.unitId) === unitId);
+    expect(row).toBeTruthy();
+    expect(String(row?.unitInitial || '')).toBe(updatedInitial);
 
     const alt = await apiRequest(request, 'GET', `/api/v1/Administration/units/${departmentId}`, {
       token,

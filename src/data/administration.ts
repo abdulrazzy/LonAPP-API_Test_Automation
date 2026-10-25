@@ -60,7 +60,8 @@ export async function createUnit(
   departmentId: number,
   overrides: { unitInitial?: string; unitName?: string } = {},
 ): Promise<{ unitId: number; unitName: string }> {
-  const unitName = (overrides.unitName || uniqueName('unit')).slice(0, 50);
+  // Update path enforces ~30 chars despite error text saying 50.
+  const unitName = (overrides.unitName || uniqueName('unit', 30)).slice(0, 30);
   const create = await apiRequest(request, 'POST', '/api/v1/Administration/unit', {
     token,
     data: {
@@ -135,7 +136,8 @@ export async function createChannel(
   token: string,
   overrides: { channelName?: string } = {},
 ): Promise<{ channelId: number; channelName: string }> {
-  const channelName = overrides.channelName || uniqueName('chan');
+  // ChannelName max is 20 characters on staging.
+  const channelName = (overrides.channelName || uniqueName('ch', 20)).slice(0, 20);
   const create = await apiRequest(request, 'POST', '/api/v1/Administration/channel', {
     token,
     data: { channelName },
