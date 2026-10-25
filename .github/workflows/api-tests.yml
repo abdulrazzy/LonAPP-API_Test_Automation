@@ -80,7 +80,7 @@ jobs:
           if-no-files-found: ignore
 
   # ---------------------------------------------------------------------------
-  # 2) Build Allure HTML report and publish to GitHub Pages
+  # 2) Build Allure HTML report and publish to gh-pages
   # ---------------------------------------------------------------------------
   allure:
     name: Generate Allure report
@@ -89,12 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.url.outputs.report_url }}
+      contents: write
     outputs:
       report_url: ${{ steps.url.outputs.report_url }}
 
@@ -137,39 +132,18 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-      - name: Ensure GitHub Pages site exists
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          STATUS=$(gh api -i "repos/${{ github.repository }}/pages" 2>/dev/null | head -n1 | awk '{print $2}' || true)
-          if [ "$STATUS" = "200" ]; then
-            echo "GitHub Pages already configured"
-          else
-            echo "Creating GitHub Pages site (Actions build)"
-            gh api -X POST "repos/${{ github.repository }}/pages" -f build_type=workflow
-          fi
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Publish Allure report to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: allure-report
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report
+          force_orphan: true
+          commit_message: 'Publish Allure report ${{ github.run_id }}'
 
       - name: Set report URL
-        if: always()
         id: url
         run: |
-          URL="${{ steps.deployment.outputs.page_url }}"
-          if [ -z "$URL" ]; then
-            URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          fi
-          case "$URL" in
-            */) ;;
-            *) URL="${URL}/" ;;
-          esac
+          URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           echo "report_url=$URL" >> "$GITHUB_OUTPUT"
           echo "Allure report URL: $URL"
 

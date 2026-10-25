@@ -59,7 +59,10 @@ On every **push**, [`.github/workflows/api-tests.yml`](.github/workflows/api-tes
 3. **Email stakeholders** — status summary + **clickable Allure report URL**  
 
 Published report URL (also in the email): `https://abdulrazzy.github.io/LonAPP-API_Test_Automation/`  
-CI enables GitHub Pages automatically on first successful deploy. If deploy is blocked, set **Settings → Pages → Source: GitHub Actions** once.
+
+**One-time setup** (needed so the link opens in a browser):  
+**Settings → Pages → Build and deployment → Deploy from a branch → `gh-pages` / `/ (root)` → Save.**  
+CI publishes the Allure HTML to the `gh-pages` branch on every run.
 
 Add these repository secrets (Settings → Secrets and variables → Actions):
 
