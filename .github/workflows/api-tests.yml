@@ -212,9 +212,3 @@ jobs:
               <strong>Allure report:</strong><br/>
               <a href="${{ steps.report.outputs.url }}">${{ steps.report.outputs.url }}</a>
             </p>
-            <p>
-              Workflow run (Playwright artifact if needed):<br/>
-              <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">
-                ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-              </a>
-            </p>
