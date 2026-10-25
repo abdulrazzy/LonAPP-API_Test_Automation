@@ -60,8 +60,8 @@ Add these repository secrets (Settings → Secrets and variables → Actions):
 | --- | --- |
 | `PLATFORM_ADMIN_EMAIL` | Yes |
 | `PLATFORM_ADMIN_PASSWORD` | Yes |
-| `SMTP_USER` | Yes (Gmail address used to send the report) |
-| `SMTP_PASSWORD` | Yes (Gmail **App Password**, not the normal login password) |
+| `SMTP_USER` | Yes — set to `razaqyaro@gmail.com` |
+| `SMTP_PASSWORD` | Yes — Gmail App Password for that account (enter without spaces) |
 | `GMAIL_CLIENT_ID` | Only if OTP tests are enabled |
 | `GMAIL_CLIENT_SECRET` | Only if OTP tests are enabled |
 | `GMAIL_REFRESH_TOKEN` | Only if OTP tests are enabled |
