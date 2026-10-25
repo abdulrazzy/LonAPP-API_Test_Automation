@@ -52,7 +52,11 @@ npm run allure:report
 
 ## GitHub Actions
 
-On every **push**, [`.github/workflows/api-tests.yml`](.github/workflows/api-tests.yml) runs the suite against **staging** (manual `workflow_dispatch` can choose `dev` or `staging`).
+On every **push**, [`.github/workflows/api-tests.yml`](.github/workflows/api-tests.yml) runs three jobs against **staging** (manual `workflow_dispatch` can choose `dev` or `staging`):
+
+1. **Run API tests** — Playwright + upload raw results / Playwright report  
+2. **Generate Allure report** — build HTML report from raw results  
+3. **Email stakeholders** — status summary + artifact download links  
 
 Add these repository secrets (Settings → Secrets and variables → Actions):
 

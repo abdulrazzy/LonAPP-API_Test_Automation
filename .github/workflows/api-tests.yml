@@ -18,10 +18,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  api-tests:
-    name: API tests (${{ github.event.inputs.environment || 'staging' }})
+  # ---------------------------------------------------------------------------
+  # 1) Run Playwright API tests and publish raw results
+  # ---------------------------------------------------------------------------
+  test:
+    name: Run API tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    outputs:
+      target: ${{ steps.env.outputs.target }}
 
     steps:
       - name: Checkout
@@ -47,7 +52,6 @@ jobs:
           echo "Running against: $TARGET"
 
       - name: Run Playwright API tests
-        id: tests
         env:
           PLATFORM_ADMIN_EMAIL: ${{ secrets.PLATFORM_ADMIN_EMAIL }}
           PLATFORM_ADMIN_PASSWORD: ${{ secrets.PLATFORM_ADMIN_PASSWORD }}
@@ -57,32 +61,12 @@ jobs:
           GMAIL_REDIRECT_URI: ${{ secrets.GMAIL_REDIRECT_URI || 'https://google.com' }}
         run: npx playwright test --project=${{ steps.env.outputs.target }}
 
-      - name: Setup Java (Allure)
-        if: always()
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Generate Allure report
-        if: always()
-        run: npm run allure:generate
-
       - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-${{ steps.env.outputs.target }}
           path: playwright-report/
-          retention-days: 14
-          if-no-files-found: ignore
-
-      - name: Upload Allure report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report-${{ steps.env.outputs.target }}
-          path: allure-report/
           retention-days: 14
           if-no-files-found: ignore
 
@@ -95,9 +79,64 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      # Gmail blocks Allure HTML/JS zip attachments (552-5.7.0). Email a summary + artifact links instead.
+  # ---------------------------------------------------------------------------
+  # 2) Build Allure HTML report from raw results
+  # ---------------------------------------------------------------------------
+  allure:
+    name: Generate Allure report
+    needs: test
+    if: always() && needs.test.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Java (Allure)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Download Allure raw results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-${{ needs.test.outputs.target }}
+          path: allure-results
+
+      - name: Generate Allure report
+        run: npm run allure:generate
+
+      - name: Upload Allure HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{ needs.test.outputs.target }}
+          path: allure-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # 3) Email stakeholders (summary + artifact links; no zip — Gmail blocks it)
+  # ---------------------------------------------------------------------------
+  notify:
+    name: Email stakeholders
+    needs: [test, allure]
+    if: always() && needs.test.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
       - name: Email Allure report
-        if: always()
         uses: dawidd6/action-send-mail@v4
         with:
           server_address: smtp.gmail.com
@@ -111,8 +150,9 @@ jobs:
           html_body: |
             <p><strong>LonApp API Test Automation Report</strong></p>
             <ul>
-              <li><strong>Status:</strong> ${{ job.status }}</li>
-              <li><strong>Environment:</strong> ${{ steps.env.outputs.target }}</li>
+              <li><strong>Test status:</strong> ${{ needs.test.result }}</li>
+              <li><strong>Allure job:</strong> ${{ needs.allure.result }}</li>
+              <li><strong>Environment:</strong> ${{ needs.test.outputs.target }}</li>
               <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
               <li><strong>Commit:</strong> ${{ github.sha }}</li>
               <li><strong>Actor:</strong> ${{ github.actor }}</li>
@@ -125,6 +165,6 @@ jobs:
             </p>
             <p>
               Artifacts on that page:<br/>
-              <code>allure-report-${{ steps.env.outputs.target }}</code> — unzip and open <code>index.html</code><br/>
-              <code>playwright-report-${{ steps.env.outputs.target }}</code> — Playwright HTML report
+              <code>allure-report-${{ needs.test.outputs.target }}</code> — unzip and open <code>index.html</code><br/>
+              <code>playwright-report-${{ needs.test.outputs.target }}</code> — Playwright HTML report
             </p>
