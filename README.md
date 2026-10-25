@@ -55,8 +55,11 @@ npm run allure:report
 On every **push**, [`.github/workflows/api-tests.yml`](.github/workflows/api-tests.yml) runs three jobs against **staging** (manual `workflow_dispatch` can choose `dev` or `staging`):
 
 1. **Run API tests** — Playwright + upload raw results / Playwright report  
-2. **Generate Allure report** — build HTML report from raw results  
-3. **Email stakeholders** — status summary + artifact download links  
+2. **Generate Allure report** — build HTML, publish to **GitHub Pages**, keep artifact backup  
+3. **Email stakeholders** — status summary + **clickable Allure report URL**  
+
+One-time Pages setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**.  
+Published report URL: `https://abdulrazzy.github.io/LonAPP-API_Test_Automation/`
 
 Add these repository secrets (Settings → Secrets and variables → Actions):
 
@@ -73,8 +76,9 @@ Add these repository secrets (Settings → Secrets and variables → Actions):
 
 After each run the workflow:
 
-1. Uploads Playwright HTML, Allure report, and raw `allure-results` as artifacts
-2. Emails stakeholders a status summary with a link to download those artifacts (Gmail blocks Allure HTML/JS zip attachments):
+1. Publishes the Allure HTML report to GitHub Pages (same URL every time — latest run)
+2. Uploads Playwright HTML / Allure artifacts as a backup
+3. Emails stakeholders with a direct link to open the Allure report:
    - `jackie.botchway@gmail.com`
    - `boakye@gmail.com`
    - `wuudof@gmail.com`

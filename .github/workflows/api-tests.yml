@@ -80,7 +80,7 @@ jobs:
           if-no-files-found: ignore
 
   # ---------------------------------------------------------------------------
-  # 2) Build Allure HTML report from raw results
+  # 2) Build Allure HTML report and publish to GitHub Pages
   # ---------------------------------------------------------------------------
   allure:
     name: Generate Allure report
@@ -88,6 +88,15 @@ jobs:
     if: always() && needs.test.result != 'cancelled'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      report_url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
@@ -117,7 +126,10 @@ jobs:
       - name: Generate Allure report
         run: npm run allure:generate
 
-      - name: Upload Allure HTML report
+      - name: Prepare report for GitHub Pages
+        run: touch allure-report/.nojekyll
+
+      - name: Upload Allure HTML report artifact
         uses: actions/upload-artifact@v4
         with:
           name: allure-report-${{ needs.test.outputs.target }}
@@ -125,8 +137,17 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   # ---------------------------------------------------------------------------
-  # 3) Email stakeholders (summary + artifact links; no zip — Gmail blocks it)
+  # 3) Email stakeholders with published Allure URL
   # ---------------------------------------------------------------------------
   notify:
     name: Email stakeholders
@@ -158,13 +179,12 @@ jobs:
               <li><strong>Actor:</strong> ${{ github.actor }}</li>
             </ul>
             <p>
-              Open the workflow run to download the <strong>Allure</strong> and <strong>Playwright</strong> reports:<br/>
+              <strong>Allure report:</strong><br/>
+              <a href="${{ needs.allure.outputs.report_url }}">${{ needs.allure.outputs.report_url }}</a>
+            </p>
+            <p>
+              Workflow run (Playwright artifact if needed):<br/>
               <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">
                 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
               </a>
-            </p>
-            <p>
-              Artifacts on that page:<br/>
-              <code>allure-report-${{ needs.test.outputs.target }}</code> — unzip and open <code>index.html</code><br/>
-              <code>playwright-report-${{ needs.test.outputs.target }}</code> — Playwright HTML report
             </p>
