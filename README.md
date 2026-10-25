@@ -74,6 +74,7 @@ After each run the workflow:
    - `jackie.botchway@gmail.com`
    - `boakye@gmail.com`
    - `wuudof@gmail.com`
+   - `jayphadit@gmail.com`
 
 ## OTP mail (currently skipped)
 
